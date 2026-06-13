@@ -122,28 +122,6 @@
                     </button>
                 </div>
 
-                <div id="question-index-nav"></div> 
-            </section>
-
-            <section id="quiz-screen" style="display: none;">
-                <div class="quiz-header"></div>
-                
-                <div id="quiz-card-container"></div>
-                
-                <div id="feedback-area"></div>
-
-                <div class="quiz-navigation">
-                    <button id="prev-btn" class="btn btn-nav adjustable-text" onclick="navigateQuiz(-1)" disabled>
-                        上一題
-                    </button>
-                    <button id="next-btn" class="btn btn-nav adjustable-text" onclick="navigateQuiz(1)">
-                        下一題
-                    </button>
-                    <button id="submit-btn" class="btn btn-submit adjustable-text" onclick="submitQuiz()">
-                        <span style="font-size: 1.1em; transform: translateY(1px);">✅</span> 完成訓練
-                    </button>
-                </div>
-
                 <div class="index-nav-legend">
                     <span class="legend-item"><span class="legend-color legend-unanswered"></span>未答題</span>
                     <span class="legend-item"><span class="legend-color legend-answered"></span>已答題</span>
@@ -152,6 +130,16 @@
                 
                 <div id="question-index-nav"></div> 
             </section>
+
+            <section id="result-screen" style="display: none;">
+                <h2 style="margin-bottom: 10px;">測驗結果分析</h2>
+                <div id="result-score" class="encouragement"></div>
+
+                <div id="result-details"></div>
+
+                <button class="btn btn-primary adjustable-text" style="width: 100%; margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;" onclick="location.reload()">
+                    <span style="font-size: 1.2em;">🏠</span> 返回首頁重新訓練
+                </button>
             </section>
         </main>
     </div>
