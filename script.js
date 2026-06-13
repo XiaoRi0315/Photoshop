@@ -4,8 +4,7 @@ let tempAnswers = {};
 let currentQuestionIndex = 0;
 let questionOptionOrders = {}; 
 
-// 自動解析圖片路徑與 [img:路徑] 標籤
-// 自動解析圖片路徑與標籤
+// 自動解析圖片路徑與 [img:路徑]、[big-img:路徑] 標籤
 function formatText(text) {
     if (!text) return '';
     text = String(text);
@@ -15,7 +14,7 @@ function formatText(text) {
         return `<img src="${text.trim()}" class="quiz-option-image" alt="選項圖片">`;
     }
     
-    // 2. 新增：解析「大圖」標籤 [big-img:路徑]
+    // 2. 解析「大圖」標籤 [big-img:路徑]
     text = text.replace(/\[big-img:(.*?)\]/gi, '<img src="$1" class="quiz-large-image" alt="大圖片">');
     
     // 3. 解析「文字中夾帶的小圖」標籤 [img:路徑]
@@ -159,7 +158,7 @@ function renderQuestion(index) {
 
         return `
             <li class="option-item">
-                <label for="q${index}-option-${key}" class="${labelClass}">
+                <label for="q${index}-option-${key}" class="${labelClass}" id="label-q${index}-option-${key}">
                     <input type="${inputType}" id="q${index}-option-${key}" name="question-${index}" value="${key}" 
                         ${isChecked ? 'checked' : ''} ${disabledAttr}
                         onclick="handleOptionChange('${key}', '${question.type}')" style="display: none;">
@@ -174,13 +173,11 @@ function renderQuestion(index) {
     let imageHTML = '';
     if (question.image) {
         if (Array.isArray(question.image)) {
-            // 若為陣列（多張圖片），將每一張圖片組合成 HTML 標籤
             imageHTML = question.image
                 .filter(img => img.trim() !== "")
                 .map(img => `<img src="${img}" class="quiz-image" alt="題目附圖">`)
                 .join('');
         } else if (typeof question.image === 'string' && question.image.trim() !== "") {
-            // 若為字串（單張圖片）
             imageHTML = `<img src="${question.image}" class="quiz-image" alt="題目附圖">`;
         }
     }
@@ -278,12 +275,21 @@ function navigateQuiz(direction) {
     }
 }
 
+// 更新題號導覽區的狀態
 function updateIndexNav(activeIndex = currentQuestionIndex) {
     const navContainer = document.getElementById('question-index-nav');
     navContainer.innerHTML = currentQuiz.map((_, index) => {
+        // 判斷是否已經有正式作答紀錄
         const isAnswered = userAnswers.hasOwnProperty(index);
         const isActive = index === activeIndex;
-        let className = 'index-btn' + (isActive ? ' active-index' : (isAnswered ? ' answered-index' : ''));
+        
+        let className = 'index-btn';
+        if (isActive) {
+            className += ' active-index';
+        } else if (isAnswered) {
+            className += ' answered-index';
+        }
+        
         return `<button class="${className}" onclick="jumpToQuestion(${index})">${index + 1}</button>`;
     }).join('');
 }
@@ -294,19 +300,36 @@ function jumpToQuestion(index) {
     document.querySelector('.container').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// 新增交卷確認判斷邏輯
 function submitQuiz() {
     const total = currentQuiz.length;
-    let correctCount = 0;
+    const answeredCount = Object.keys(userAnswers).length;
+    const unansweredCount = total - answeredCount;
     
-    if (Object.keys(userAnswers).length < total) {
-        showMessageBox(`您還有 ${total - Object.keys(userAnswers).length} 題尚未作答或確認！請完成所有題目後再繳卷。`);
-        return;
+    // 如果有未答題目，跳出確認視窗；如果全答完，直接結算
+    if (unansweredCount > 0) {
+        showConfirmBox(`您還有 <span style="color: var(--color-red-text); font-size: 1.3em;">${unansweredCount}</span> 題尚未作答或確認！<br>確定要現在結束測驗並看成績嗎？`, () => {
+            processSubmission(total);
+        });
+    } else {
+        processSubmission(total);
     }
+}
+
+// 獨立的結算與換頁邏輯
+function processSubmission(total) {
+    let correctCount = 0;
 
     const results = currentQuiz.map((q, index) => {
         const correctAnswers = Array.isArray(q.answer) ? [...q.answer].sort() : [q.answer];
-        const userSelected = Array.isArray(userAnswers[index]) ? [...userAnswers[index]].sort() : [userAnswers[index]];
-        const isCorrect = JSON.stringify(correctAnswers) === JSON.stringify(userSelected);
+        
+        // 處理使用者未作答的情況
+        let userSelected = [];
+        if (userAnswers[index]) {
+            userSelected = Array.isArray(userAnswers[index]) ? [...userAnswers[index]].sort() : [userAnswers[index]];
+        }
+        
+        const isCorrect = userSelected.length > 0 && JSON.stringify(correctAnswers) === JSON.stringify(userSelected);
         
         if (isCorrect) correctCount++;
         
@@ -341,12 +364,17 @@ function renderResultScreen(score, correctCount, total, results) {
         const correctText = item.correctAnswer.map(ans => formatText(item.options[ans])).join('、');
         const userText = item.userAnswer.length > 0 && item.userAnswer[0] ? item.userAnswer.map(ans => formatText(item.options[ans])).join('、') : '未作答';
         
+        // 新增未作答的狀態判斷
+        const isUnanswered = item.userAnswer.length === 0;
+        const statusText = isUnanswered ? '⚪ 未答' : (item.isCorrect ? '✅ 答對' : '❌ 答錯');
+        const itemClass = isUnanswered ? 'unanswered' : (item.isCorrect ? 'correct' : 'incorrect');
+
         return `
-        <div class="result-item ${item.userAnswer.length > 0 ? (item.isCorrect ? 'correct' : 'incorrect') : 'unanswered'}">
-            <div>Q${item.index}. ${item.isCorrect ? '✅ 答對' : '❌ 答錯'} (${item.type})</div>
+        <div class="result-item ${itemClass}">
+            <div>Q${item.index}. ${statusText} (${item.type})</div>
             <p>${formatText(item.question)}</p>
             <div class="result-detail">
-                <p>您的選擇: <span style="color:${item.isCorrect ? colors.correctColor : colors.wrongColor}">${userText}</span></p>
+                <p>您的選擇: <span style="color:${item.isCorrect ? colors.correctColor : (isUnanswered ? colors.defaultColor : colors.wrongColor)}">${userText}</span></p>
                 <p>正確答案: <span style="color:${colors.correctColor}">${correctText}</span></p>
                 <div class="explanation-text">解析: ${formatText(item.explanation)}</div>
             </div>
@@ -354,11 +382,32 @@ function renderResultScreen(score, correctCount, total, results) {
     `}).join('');
 }
 
+// 一般的訊息提示框
 function showMessageBox(message) {
     const msgBox = document.createElement('div');
     msgBox.style.cssText = `position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); padding:30px; background:var(--color-container-bg); border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:1000; text-align:center; border:3px solid var(--color-primary); color:var(--color-text); width: 80%; max-width: 400px;`;
     msgBox.innerHTML = `<p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 20px;">${message}</p><button class="btn btn-primary" onclick="this.parentNode.remove()">確定</button>`;
     document.body.appendChild(msgBox);
+}
+
+// 詢問是否確定交卷的對話框
+function showConfirmBox(message, onConfirm) {
+    const msgBox = document.createElement('div');
+    msgBox.style.cssText = `position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); padding:30px; background:var(--color-container-bg); border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); z-index:1000; text-align:center; border:3px solid var(--color-primary); color:var(--color-text); width: 80%; max-width: 400px;`;
+    
+    msgBox.innerHTML = `
+        <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 25px; line-height: 1.5;">${message}</p>
+        <div style="display: flex; justify-content: center; gap: 15px;">
+            <button class="btn" style="background-color: #eee; color: #333; border: 1px solid #ccc; box-shadow: 0 4px 0 #ccc;" onclick="this.parentNode.parentNode.remove()">繼續作答</button>
+            <button class="btn btn-primary" id="confirm-yes-btn">確定交卷</button>
+        </div>
+    `;
+    document.body.appendChild(msgBox);
+
+    document.getElementById('confirm-yes-btn').onclick = () => {
+        msgBox.remove();
+        if (typeof onConfirm === 'function') onConfirm();
+    };
 }
 
 window.onload = () => {
