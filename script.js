@@ -63,12 +63,22 @@ function updateButtonColors() {
 }
 
 function renderFilters() {
+    // 讀取並還原題目類型的選擇
     const storedTypes = JSON.parse(localStorage.getItem('selectedTypes') || '[]');
     storedTypes.forEach(type => {
         let idMap = {'是非題': 'type-tf', '選擇題': 'type-single', '複選題': 'type-multiple'};
         const checkbox = document.getElementById(idMap[type]);
         if (checkbox) checkbox.checked = true;
     });
+
+    // 讀取並還原抽題數量的選擇
+    const storedCountSetting = localStorage.getItem('quizCountSetting');
+    if (storedCountSetting) {
+        const countRadio = document.querySelector(`input[name="quiz-count"][value="${storedCountSetting}"]`);
+        if (countRadio) {
+            countRadio.checked = true;
+        }
+    }
 }
 
 function startTraining() {
@@ -87,7 +97,9 @@ function startTraining() {
         return;
     }
 
+    // 儲存使用者的選擇
     localStorage.setItem('selectedTypes', JSON.stringify(selectedTypes));
+    localStorage.setItem('quizCountSetting', countSetting);
     
     filteredData.sort(() => 0.5 - Math.random());
 
