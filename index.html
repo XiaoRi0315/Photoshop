@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoshopCC2026考古題</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            window.db = getFirestore(app);
+            window.auth = getAuth(app);
+            
+            async function authenticate() {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(window.auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(window.auth);
+                    }
+                    console.log("Firebase Auth successful. User ID:", window.auth.currentUser?.uid || 'Anonymous');
+                } catch (error) {
+                    console.error("Firebase authentication failed:", error);
+                }
+            }
+            authenticate();
+        } else {
+            console.warn("Firebase config not available. Running in local mode.");
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="main-title" style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+                PhotoshopCC2026考古題
+            </h1>
+            <div class="font-size-control">
+                <button id="theme-toggle-btn" 
+                        class="btn btn-primary" 
+                        onclick="toggleTheme()" 
+                        style="padding: 8px 15px; font-size: 1.1rem; box-shadow: none; border: 1px solid var(--color-border);">
+                    🌙
+                </button>
+                
+                <label for="font-size-select">字體大小:</label>
+                <select id="font-size-select" onchange="adjustFontSize(this.value)">
+                    <option value="s">小 (S)</option>
+                    <option value="m" selected>中 (M)</option>
+                    <option value="l">大 (L)</option>
+                    <option value="xl">特大 (XL)</option>
+                    <option value="xxl">超大 (XXL)</option>
+                </select>
+            </div>
+        </header>
+
+        <main id="app">
+            <section id="home-screen">
+                <div class="filter-group">
+                    <h3 style="margin-top:0; font-size: 1.1rem; color: var(--color-text-light);">題目類型</h3>
+                    <div id="topic-filters" class="filter-options">
+                        <input type="checkbox" id="type-tf" name="type" value="是非題">
+                        <label for="type-tf" class="checkbox-label adjustable-text">是非題</label>
+                        
+                        <input type="checkbox" id="type-single" name="type" value="選擇題">
+                        <label for="type-single" class="checkbox-label adjustable-text">選擇題</label>
+
+                        <input type="checkbox" id="type-multiple" name="type" value="複選題">
+                        <label for="type-multiple" class="checkbox-label adjustable-text">複選題</label>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3 style="margin-top:0; font-size: 1.1rem; color: var(--color-text-light);">隨機抽題設定</h3>
+                    <div id="count-filters" class="filter-options">
+                        <input type="radio" id="count-10" name="quiz-count" value="10" class="count-radio">
+                        <label for="count-10" class="checkbox-label adjustable-text">抽10題</label>
+                        
+                        <input type="radio" id="count-50" name="quiz-count" value="50" class="count-radio">
+                        <label for="count-50" class="checkbox-label adjustable-text">抽50題</label>
+                        
+                        <input type="radio" id="count-all" name="quiz-count" value="all" class="count-radio" checked>
+                        <label for="count-all" class="checkbox-label adjustable-text">全部題目</label>
+                    </div>
+                </div>
+
+                <button id="start-btn" 
+                        class="btn btn-primary" 
+                        style="width: 100%; margin-top: 25px; display: flex; align-items: center; justify-content: center; gap: 10px;" 
+                        onclick="startTraining()">
+                    <span style="font-size: 1.6em;">🚀</span> 
+                    開始訓練
+                </button>
+            </section>
+
+            <section id="quiz-screen" style="display: none;">
+                <div class="quiz-header"></div>
+                
+                <div id="quiz-card-container"></div>
+                
+                <div id="feedback-area"></div>
+
+                <div class="quiz-navigation">
+                    <button id="prev-btn" class="btn btn-nav adjustable-text" onclick="navigateQuiz(-1)" disabled>
+                        上一題
+                    </button>
+                    <button id="next-btn" class="btn btn-nav adjustable-text" onclick="navigateQuiz(1)">
+                        下一題
+                    </button>
+                    <button id="submit-btn" class="btn btn-submit adjustable-text" onclick="submitQuiz()">
+                        <span style="font-size: 1.1em; transform: translateY(1px);">✅</span> 完成訓練
+                    </button>
+                </div>
+
+                <div id="question-index-nav"></div> 
+            </section>
+
+            <section id="quiz-screen" style="display: none;">
+                <div class="quiz-header"></div>
+                
+                <div id="quiz-card-container"></div>
+                
+                <div id="feedback-area"></div>
+
+                <div class="quiz-navigation">
+                    <button id="prev-btn" class="btn btn-nav adjustable-text" onclick="navigateQuiz(-1)" disabled>
+                        上一題
+                    </button>
+                    <button id="next-btn" class="btn btn-nav adjustable-text" onclick="navigateQuiz(1)">
+                        下一題
+                    </button>
+                    <button id="submit-btn" class="btn btn-submit adjustable-text" onclick="submitQuiz()">
+                        <span style="font-size: 1.1em; transform: translateY(1px);">✅</span> 完成訓練
+                    </button>
+                </div>
+
+                <div class="index-nav-legend">
+                    <span class="legend-item"><span class="legend-color legend-unanswered"></span>未答題</span>
+                    <span class="legend-item"><span class="legend-color legend-answered"></span>已答題</span>
+                    <span class="legend-item"><span class="legend-color legend-active"></span>當前題目</span>
+                </div>
+                
+                <div id="question-index-nav"></div> 
+            </section>
+            </section>
+        </main>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
