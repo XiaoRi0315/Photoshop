@@ -3207,7 +3207,7 @@ const quizData = [
         "image": "images/MS6.png",
         "A": "images/MS6-A.png",
         "B": "images/MS6-B.png",
-        "C": "images/MS6-Cpng",
+        "C": "images/MS6-C.png",
         "D": "images/MS6-D.png",
         "E": "images/MS6-E.png",
         "answer": ["B", "C", "D"],
@@ -3585,7 +3585,5 @@ const quizData = [
         "answer": ["B", "E"],
         "explanation": "可查看第37題"
     }
-
-    // ↓↓↓↓↓↓ 請在下方貼上你的真實題庫內容 ↓↓↓↓↓↓
     
 ];
