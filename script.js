@@ -4,9 +4,15 @@ let tempAnswers = {};
 let currentQuestionIndex = 0;
 let questionOptionOrders = {}; 
 
-// 自動解析圖片路徑與 [img:路徑]、[big-img:路徑] 標籤
+// 自動解析圖片路徑與 [img:路徑]、[big-img:路徑]、[opt-img:路徑] 標籤
 function formatText(text) {
     if (!text) return '';
+    
+    // 新增：如果傳入的是陣列（例如一個選項有兩張圖片），將陣列內的每個項目分別處理後再合併
+    if (Array.isArray(text)) {
+        return text.map(item => formatText(item)).join('<span style="margin: 0 5px;"></span>');
+    }
+
     text = String(text);
     
     // 1. 如果整個字串就是一個圖片路徑 (選項的預設中型圖片)
@@ -16,8 +22,11 @@ function formatText(text) {
     
     // 2. 解析「大圖」標籤 [big-img:路徑]
     text = text.replace(/\[big-img:(.*?)\]/gi, '<img src="$1" class="quiz-large-image" alt="大圖片">');
+
+    // 3. 新增：解析「選項中圖」標籤 [opt-img:路徑] (適用於一選項有多圖或圖文並排的情況)
+    text = text.replace(/\[opt-img:(.*?)\]/gi, '<img src="$1" class="quiz-option-image" alt="選項圖片">');
     
-    // 3. 解析「文字中夾帶的小圖」標籤 [img:路徑]
+    // 4. 解析「文字中夾帶的小圖」標籤 [img:路徑]
     text = text.replace(/\[img:(.*?)\]/gi, '<img src="$1" class="quiz-inline-image" alt="文字圖片">');
     
     return text;
@@ -122,10 +131,8 @@ function startTraining() {
         let shouldShuffle = true;
 
         if (q.type === '是非題') {
-            // 條件 1：是非題不洗牌
             shouldShuffle = false;
         } else if (q.type === '選擇題') {
-            // 條件 2：選擇題且選項內容剛好為 A, B, C, D 時不洗牌
             const values = availableKeys.map(k => String(q[k]).trim());
             if (values.join(',') === 'A,B,C,D') {
                 shouldShuffle = false;
@@ -135,7 +142,7 @@ function startTraining() {
         if (shouldShuffle) {
             questionOptionOrders[idx] = availableKeys.sort(() => 0.5 - Math.random());
         } else {
-            questionOptionOrders[idx] = availableKeys; // 保持原本 A, B, C, D 的順序
+            questionOptionOrders[idx] = availableKeys; 
         }
     });
     
@@ -179,7 +186,6 @@ function renderQuestion(index) {
                 labelClass += ' wrong-highlight'; 
             }
         } else if (isChecked && isMultipleChoice) {
-            // 複選題作答中，讓已勾選的選項變得非常明顯
             labelClass += ' temp-selected-highlight';
         }
 
