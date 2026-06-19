@@ -116,9 +116,27 @@ function startTraining() {
     currentQuestionIndex = 0;
     questionOptionOrders = {}; 
 
+    // 判斷是否需要洗牌的邏輯
     currentQuiz.forEach((q, idx) => {
-        const availableKeys = Object.keys(q).filter(k => /^[A-Z]$/.test(k));
-        questionOptionOrders[idx] = availableKeys.sort(() => 0.5 - Math.random());
+        let availableKeys = Object.keys(q).filter(k => /^[A-Z]$/.test(k)).sort();
+        let shouldShuffle = true;
+
+        if (q.type === '是非題') {
+            // 條件 1：是非題不洗牌
+            shouldShuffle = false;
+        } else if (q.type === '選擇題') {
+            // 條件 2：選擇題且選項內容剛好為 A, B, C, D 時不洗牌
+            const values = availableKeys.map(k => String(q[k]).trim());
+            if (values.join(',') === 'A,B,C,D') {
+                shouldShuffle = false;
+            }
+        }
+
+        if (shouldShuffle) {
+            questionOptionOrders[idx] = availableKeys.sort(() => 0.5 - Math.random());
+        } else {
+            questionOptionOrders[idx] = availableKeys; // 保持原本 A, B, C, D 的順序
+        }
     });
     
     document.getElementById('home-screen').style.display = 'none';
